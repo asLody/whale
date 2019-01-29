@@ -46,7 +46,7 @@ To solve this problem，Whale will provide a new core named `Binary Static Inlin
 - [x] IOS 11.3
 - [x] IOS 12.0
 - [x] MacOS mojave (10.14)
-- (Not in the list means ++untested++ ）
+- (Not in the list means `untested` ）
 
 ## InlineHook
 For `pcrel instruction`, Whale will convert it to `pc-independent instruction`，
@@ -102,6 +102,8 @@ make -j4
 
 ## Technogy communication
 > [GOTO => Discord](https://discord.gg/j2Cdy2g)
+
+> Email: imlody@foxmail.com
 
 
 [0]: https://github.com/asLody/whale/blob/master/LOGO.png?raw=true
