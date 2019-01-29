@@ -43,7 +43,7 @@ IOS下的`Binary Static Inline Hook`将在近期开源。
 - [x] IOS 11.3
 - [x] IOS 12.0
 - [x] MacOS mojave (10.14)
-- (不在清单内表示 ++未测试++ ）
+- (不在清单内表示 `未测试` ）
 
 ## InlineHook
 对于`pcrel指令`, Whale会将其转换为`pc 无关指令`，
