@@ -64,7 +64,7 @@ Whale uses CMake to build projects, so you need to install CMake on your system.
 #### Android
 1. If you need to use ` Java Hook ` please copy java folder to your project.
 
-2. Direct use of binary，You just copy the files under ++built/Android++ to ++src/main/jniLibs++ in your project.
+2. Direct use of binary，You just copy the files under `built/Android` to `src/main/jniLibs` in your project.
 
 3. If you need to compile the source code, specify `CMakeLists.txt` in build.gradle:
 ```
