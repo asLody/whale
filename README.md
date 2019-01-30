@@ -69,9 +69,9 @@ Whale uses CMake to build projects, so you need to install CMake on your system.
 3. If you need to compile the source code, specify `CMakeLists.txt` in build.gradle:
 ```
 externalNativeBuild {
-cmake {
-path "your/whale/path/CMakeLists.txt"
-}
+  cmake {
+      path "your/whale/path/CMakeLists.txt"
+  }
 }
 ```
 
