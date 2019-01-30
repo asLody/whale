@@ -66,9 +66,9 @@ Whale使用了CMake来构建项目，所以你需要在你的系统上安装CMak
 3. 如果需要编译源码，请在build.gradle中指定CMakelists.txt：
 ```
 externalNativeBuild {
-cmake {
-path "your/whale/path/CMakeLists.txt"
-}
+  cmake {
+      path "your/whale/path/CMakeLists.txt"
+  }
 }
 ```
 
