@@ -61,7 +61,7 @@ Whale使用了CMake来构建项目，所以你需要在你的系统上安装CMak
 #### Android
 1. 如果需要使用`Java Hook`, 请把java文件夹的代码复制到你的项目。
 
-2. 直接使用二进制，你只需要复制 ++built/Android++ 下你所需的abi到你的项目的src/main/jniLibs下。
+2. 直接使用二进制，你只需要复制 `built/Android` 下你所需的abi到你的项目的src/main/jniLibs下。
 
 3. 如果需要编译源码，请在build.gradle中指定CMakelists.txt：
 ```
