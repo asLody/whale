@@ -10,7 +10,7 @@ Whale support both **ARM/THUMB, ARM64, X86, X86_64 (AMD64)**, This covers almost
 
 ## Feature
 #### Android
-* **Xposed-Stylae** Method Hook
+* **Xposed-Style** Method Hook
 * Modify the inheritance relationship between classes at runtime
 * Modifies the class to which the object belongs at runtime
 * bypass `Hidden API Policy`
