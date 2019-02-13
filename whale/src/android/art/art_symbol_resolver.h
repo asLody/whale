@@ -26,6 +26,8 @@ struct ResolvedSymbols {
 
     ptr_t (*Object_Clone)(ptr_t object_this, ptr_t thread);
 
+    ptr_t (*Object_CloneWithClass)(ptr_t object_this, ptr_t thread, ptr_t cls);
+
     ptr_t (*Object_CloneWithSize)(ptr_t object_this, ptr_t thread, size_t num_bytes);
 
     jobject (*JniEnvExt_NewLocalRef)(JNIEnv *jnienv_ext_this, ptr_t art_object);

@@ -55,6 +55,9 @@ SYMBOL kArt_EnsureInitialized = "_ZN3art11ClassLinker17EnsureInitializedEPNS_6Th
 // art::mirror::Object::Clone(art::Thread*)
 SYMBOL kArt_Object_Clone = "_ZN3art6mirror6Object5CloneEPNS_6ThreadE";
 
+// art::mirror::Object::Clone(art::Thread*, art::mirror::Class*)
+SYMBOL kArt_Object_CloneWithClass = "_ZN3art6mirror6Object5CloneEPNS_6ThreadEPNS0_5ClassE";
+
 #if defined(__LP64__)
 // art::mirror::Object::Clone(art::Thread*, unsigned long)
 SYMBOL kArt_Object_CloneWithSize = "_ZN3art6mirror6Object5CloneEPNS_6ThreadEm";
@@ -100,7 +103,10 @@ bool ArtSymbolResolver::Resolve(void *elf_image, s4 api_level) {
     }
     FIND_SYMBOL(kArt_Object_Clone, symbols_.Object_Clone, false);
     if (symbols_.Object_Clone == nullptr) {
-        FIND_SYMBOL(kArt_Object_CloneWithSize, symbols_.Object_CloneWithSize, true);
+        FIND_SYMBOL(kArt_Object_CloneWithSize, symbols_.Object_CloneWithSize, false);
+    }
+    if (symbols_.Object_Clone == nullptr) {
+        FIND_SYMBOL(kArt_Object_CloneWithClass, symbols_.Object_CloneWithClass, true);
     }
     FIND_SYMBOL(kArt_DecodeJObject, symbols_.Thread_DecodeJObject, true);
     FIND_SYMBOL(kArt_JniEnvExt_NewLocalRef, symbols_.JniEnvExt_NewLocalRef, true);

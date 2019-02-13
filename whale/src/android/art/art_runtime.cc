@@ -447,6 +447,9 @@ ptr_t ArtRuntime::CloneArtObject(ptr_t art_object) {
     if (symbols->Object_Clone) {
         return symbols->Object_Clone(art_object, GetCurrentArtThread());
     }
+    if (symbols->Object_CloneWithClass) {
+        return symbols->Object_CloneWithClass(art_object, GetCurrentArtThread(), nullptr);
+    }
     return symbols->Object_CloneWithSize(art_object, GetCurrentArtThread(), 0);
 }
 
