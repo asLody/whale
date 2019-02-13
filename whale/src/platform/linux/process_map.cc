@@ -47,7 +47,7 @@ void
 ForeachMemoryRange(std::function<bool(uintptr_t, uintptr_t, char *, char *)> callback) {
     FILE *f;
     if ((f = fopen("/proc/self/maps", "r"))) {
-        char buf[PATH_MAX], perm[5], dev[6], mapname[PATH_MAX];
+        char buf[PATH_MAX], perm[12], dev[12], mapname[PATH_MAX];
         uintptr_t begin, end, inode, foo;
 
         while (!feof(f)) {
