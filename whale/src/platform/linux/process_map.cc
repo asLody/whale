@@ -55,10 +55,10 @@ ForeachMemoryRange(std::function<bool(uintptr_t, uintptr_t, char *, char *)> cal
                 break;
             mapname[0] = '\0';
 #if defined(__LP64__)
-            sscanf(buf, "%lx-%lx %4s %lx %5s %ld %s", &begin, &end, perm,
+            sscanf(buf, "%lx-%lx %s %lx %s %ld %s", &begin, &end, perm,
                    &foo, dev, &inode, mapname);
 #else
-            sscanf(buf, "%x-%x %4s %x %5s %d %s", &begin, &end, perm,
+            sscanf(buf, "%x-%x %s %x %s %d %s", &begin, &end, perm,
                    &foo, dev, &inode, mapname);
 #endif
             if (!callback(begin, end, perm, mapname)) {
