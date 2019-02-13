@@ -47,20 +47,14 @@ void
 ForeachMemoryRange(std::function<bool(uintptr_t, uintptr_t, char *, char *)> callback) {
     FILE *f;
     if ((f = fopen("/proc/self/maps", "r"))) {
-        char buf[PATH_MAX], perm[12], dev[12], mapname[PATH_MAX];
+        char buf[PATH_MAX], perm[12] = {'\0'}, dev[12] = {'\0'}, mapname[PATH_MAX] = {'\0'};
         uintptr_t begin, end, inode, foo;
 
         while (!feof(f)) {
             if (fgets(buf, sizeof(buf), f) == 0)
                 break;
-            mapname[0] = '\0';
-#if defined(__LP64__)
             sscanf(buf, "%lx-%lx %s %lx %s %ld %s", &begin, &end, perm,
                    &foo, dev, &inode, mapname);
-#else
-            sscanf(buf, "%x-%x %s %x %s %d %s", &begin, &end, perm,
-                   &foo, dev, &inode, mapname);
-#endif
             if (!callback(begin, end, perm, mapname)) {
                 break;
             }
