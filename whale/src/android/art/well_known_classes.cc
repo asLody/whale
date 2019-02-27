@@ -43,13 +43,15 @@ static jmethodID CacheMethod(JNIEnv *env, jclass c, bool is_static,
 }
 
 static jfieldID CacheField(JNIEnv *env, jclass c, bool is_static,
-                           const char *name, const char *signature) {
+                           const char *name, const char *signature, bool weak = false) {
     jfieldID fid = is_static ? env->GetStaticFieldID(c, name, signature) :
                    env->GetFieldID(c, name, signature);
     if (fid == nullptr) {
-        LOG(FATAL) << "Couldn't find field \"" << name << "\" with signature \"" << signature;
         if (env->ExceptionCheck()) {
-            env->ExceptionOccurred();
+            env->ExceptionClear();
+        }
+        if (weak) {
+            LOG(FATAL) << "Couldn't find field \"" << name << "\" with signature \"" << signature;
         }
     }
     return fid;
@@ -91,8 +93,7 @@ void WellKnownClasses::Load(JNIEnv *env) {
                                                                    "setAccessible",
                                                                    "(Z)V");
 
-    java_lang_Thread_nativePeer = CacheField(env, java_lang_Thread, false, "nativePeer", "J");
-
+    java_lang_Thread_nativePeer = CacheField(env, java_lang_Thread, false, "nativePeer", "J", true);
 }
 
 
