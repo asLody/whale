@@ -131,7 +131,6 @@ class ArtRuntime final {
     jmethodID bridge_method_;
     s4 api_level_;
     void *art_elf_image_;
-    bool is_houdini_;
     NativeBridgeCallbacks OPTION *android_bridge_callbacks_;
     ArtSymbolResolver art_symbol_resolver_;
     RuntimeObjects runtime_objects_;

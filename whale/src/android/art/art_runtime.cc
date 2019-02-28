@@ -39,8 +39,8 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
     if ((kRuntimeISA == InstructionSet::kArm
          || kRuntimeISA == InstructionSet::kArm64)
         && IsFileInMemory("libhoudini.so")) {
-        LOG(INFO) << '[' << getpid() << ']' << " You are running on houdini environment.";
-        is_houdini_ = true;
+        LOG(INFO) << '[' << getpid() << ']' << " Unable to launch on houdini environment.";
+        return false;
     }
     vm_ = vm;
     java_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(java_class));
@@ -55,10 +55,7 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
     api_level_ = GetAndroidApiLevel();
     PreLoadRequiredStuff(env);
     const char *art_path = kLibArtPath;
-    if (is_houdini_) {
-        art_path = kLibHoudiniArtPath;
-    }
-    art_elf_image_ = WDynamicLibOpenAlias("/libart.so", art_path);
+    art_elf_image_ = WDynamicLibOpen(art_path);
     if (art_elf_image_ == nullptr) {
         LOG(ERROR) << "Unable to read data from libart.so.";
         return false;
