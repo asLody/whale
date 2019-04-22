@@ -1837,6 +1837,28 @@ public final class XposedHelpers {
         return methods;
     }
 
+    /**
+     * the static method is lazy resolved, when not resolved, the entry point is a trampoline of
+     * a bridge, we can not hook these entry. this method force the static method to be resolved.
+     */
+    public static void resolveStaticMethod(Member method) {
+        //ignore result, just call to trigger resolve
+        if (method == null)
+            return;
+        try {
+            if (method instanceof Method && Modifier.isStatic(method.getModifiers())) {
+                ((Method) method).setAccessible(true);
+                ((Method) method).invoke(new Object(), getFakeArgs((Method) method));
+            }
+        } catch (Exception ignored) {
+            // we should never make a successful call.
+        }
+    }
+
+    private static Object[] getFakeArgs(Method method) {
+        return method.getParameterTypes().length == 0 ? new Object[]{new Object()} : null;
+    }
+
     //#################################################################################################
     // TODO helpers for view traversing
     /*To make it easier, I will try and implement some more helpers:

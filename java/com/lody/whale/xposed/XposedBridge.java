@@ -98,6 +98,7 @@ public final class XposedBridge {
         callbacks.add(callback);
 
         if (newMethod) {
+            XposedHelpers.resolveStaticMethod(hookMethod);
             AdditionalHookInfo additionalInfo = new AdditionalHookInfo(callbacks);
             long slot = WhaleRuntime.hookMethodNative(hookMethod.getDeclaringClass(), hookMethod, additionalInfo);
             if (slot <= 0) {

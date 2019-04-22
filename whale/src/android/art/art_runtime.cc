@@ -191,9 +191,6 @@ ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_metho
     ArtMethod hooked_method(hooked_jni_method);
     auto *param = new ArtHookParam();
 
-    param->origin_compiled_code_ = hooked_method.GetEntryPointFromQuickCompiledCode();
-    param->origin_code_item_off = hooked_method.GetDexCodeItemOffset();
-    param->origin_jni_code_ = hooked_method.GetEntryPointFromJni();
     param->class_Loader_ = env->NewGlobalRef(
             env->CallObjectMethod(
                     decl_class,
@@ -203,10 +200,11 @@ ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_metho
     param->shorty_ = hooked_method.GetShorty(env, hooked_java_method);
     param->is_static_ = hooked_method.HasAccessFlags(kAccStatic);
 
-    if (param->is_static_) {
-        EnsureClassInitialized(env, decl_class);
-    }
-    jobject origin_java_method = hooked_method.Clone(env, hooked_method.GetAccessFlags());
+    param->origin_compiled_code_ = hooked_method.GetEntryPointFromQuickCompiledCode();
+    param->origin_code_item_off = hooked_method.GetDexCodeItemOffset();
+    param->origin_jni_code_ = hooked_method.GetEntryPointFromJni();
+    param->origin_access_flags = hooked_method.GetAccessFlags();
+    jobject origin_java_method = hooked_method.Clone(env, param->origin_access_flags);
 
     ResolvedSymbols *symbols = GetSymbols();
     if (symbols->ProfileSaver_ForceProcessProfiles) {
