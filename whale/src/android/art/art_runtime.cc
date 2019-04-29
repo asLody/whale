@@ -175,6 +175,7 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
     CHECK_FIELD(quick_generic_jni_trampoline, nullptr)
     class_linker_objects_.quick_generic_jni_trampoline_ = quick_generic_jni_trampoline;
 
+    pthread_mutex_init(&mutex, nullptr);
     EnforceDisableHiddenAPIPolicy();
     return true;
 
@@ -267,19 +268,23 @@ ArtRuntime::InvokeOriginalMethod(jlong slot, jobject this_object, jobjectArray a
     ArtMethod hooked_method(param->hooked_native_method_);
     ptr_t decl_class = hooked_method.GetDeclaringClass();
     if (param->decl_class_ != decl_class) {
-        ScopedSuspendAll suspend_all;
-        LOG(INFO)
-                << "Notice: MovingGC cause the GcRoot References changed.";
-        jobject origin_java_method = hooked_method.Clone(env, param->origin_access_flags);
-        jmethodID origin_jni_method = env->FromReflectedMethod(origin_java_method);
-        ArtMethod origin_method(origin_jni_method);
-        origin_method.SetEntryPointFromQuickCompiledCode(param->origin_compiled_code_);
-        origin_method.SetEntryPointFromJni(param->origin_jni_code_);
-        origin_method.SetDexCodeItemOffset(param->origin_code_item_off);
-        param->origin_native_method_ = origin_jni_method;
-        env->DeleteGlobalRef(param->origin_method_);
-        param->origin_method_ = env->NewGlobalRef(origin_java_method);
-        param->decl_class_ = decl_class;
+        pthread_mutex_lock(&mutex);
+        if (param->decl_class_ != decl_class) {
+            ScopedSuspendAll suspend_all;
+            LOG(INFO)
+                    << "Notice: MovingGC cause the GcRoot References changed.";
+            jobject origin_java_method = hooked_method.Clone(env, param->origin_access_flags);
+            jmethodID origin_jni_method = env->FromReflectedMethod(origin_java_method);
+            ArtMethod origin_method(origin_jni_method);
+            origin_method.SetEntryPointFromQuickCompiledCode(param->origin_compiled_code_);
+            origin_method.SetEntryPointFromJni(param->origin_jni_code_);
+            origin_method.SetDexCodeItemOffset(param->origin_code_item_off);
+            param->origin_native_method_ = origin_jni_method;
+            env->DeleteGlobalRef(param->origin_method_);
+            param->origin_method_ = env->NewGlobalRef(origin_java_method);
+            param->decl_class_ = decl_class;
+        }
+        pthread_mutex_unlock(&mutex);
     }
 
     jobject ret = env->CallNonvirtualObjectMethod(

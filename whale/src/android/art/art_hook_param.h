@@ -18,7 +18,7 @@ struct ArtHookParam final {
     u4 origin_code_item_off;
     jobject origin_method_;
     jobject hooked_method_;
-    ptr_t decl_class_;
+    volatile ptr_t decl_class_;
     jobject class_Loader_;
     jmethodID hooked_native_method_;
     jmethodID origin_native_method_;
