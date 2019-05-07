@@ -33,7 +33,9 @@ jobject ArtMethod::Clone(JNIEnv *env, u4 access_flags) {
         access_flags |= kAccCompileDontBother_O_MR1;
         access_flags |= kAccPreviouslyWarm_O_MR1;
     }
-    access_flags |= kAccSkipAccessChecks;
+    if (!is_native_method) {
+        access_flags |= kAccSkipAccessChecks;
+    }
     if (api_level >= ANDROID_N) {
         clone_method.SetHotnessCount(0);
         if (!is_native_method) {

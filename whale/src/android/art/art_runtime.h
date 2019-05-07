@@ -125,6 +125,8 @@ class ArtRuntime final {
 
     ptr_t CloneArtObject(ptr_t art_object);
 
+    void FixBugN();
+
  private:
     JavaVM *vm_;
     jclass java_class_;

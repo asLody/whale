@@ -177,6 +177,9 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
 
     pthread_mutex_init(&mutex, nullptr);
     EnforceDisableHiddenAPIPolicy();
+    if (api_level_ >= ANDROID_N) {
+        FixBugN();
+    }
     return true;
 
 #undef CHECK_OFFSET
@@ -466,6 +469,26 @@ ptr_t ArtRuntime::CloneArtObject(ptr_t art_object) {
         return symbols->Object_CloneWithClass(art_object, GetCurrentArtThread(), nullptr);
     }
     return symbols->Object_CloneWithSize(art_object, GetCurrentArtThread(), 0);
+}
+
+int (*old_ToDexPc)(void *thiz, void *a2, unsigned int a3, int a4);
+int new_ToDexPc(void *thiz, void *a2, unsigned int a3, int a4) {
+    return old_ToDexPc(thiz, a2, a3, 0);
+}
+
+bool is_hooked = false;
+void ArtRuntime::FixBugN() {
+    if (is_hooked)
+        return;
+    void *symbol = nullptr;
+    symbol = WDynamicLibSymbol(
+            art_elf_image_,
+            "_ZNK3art20OatQuickMethodHeader7ToDexPcEPNS_9ArtMethodEjb"
+    );
+    if (symbol) {
+        WInlineHookFunction(symbol, reinterpret_cast<void *>(new_ToDexPc), reinterpret_cast<void **>(&old_ToDexPc));
+    }
+    is_hooked = true;
 }
 
 }  // namespace art
