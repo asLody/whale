@@ -12,6 +12,10 @@ namespace whale {
 namespace art {
 
 static void UnBoxValue(JNIEnv *env, jvalue *jv, jobject obj, char type) {
+    if (obj == nullptr) {
+        jv->l = obj;
+        return;
+    }
     switch (type) {
         case 'I':
             jv->i = Types::FromInteger(env, obj);
