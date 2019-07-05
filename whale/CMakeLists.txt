@@ -64,8 +64,21 @@ set(WHALE_DARWIN_SOURCES
         src/dbi/darwin/macho_import_hook.cc
         )
 
+set(MSHOOK
+        src/MSHook/hook.cpp
+        src/MSHook/ARM.cpp
+        src/MSHook/Thumb.cpp
+        src/MSHook/x86.cpp
+        src/MSHook/x86_64.cpp
+        src/MSHook/Debug.cpp
+        src/MSHook/Hooker.cpp
+        src/MSHook/PosixMemory.cpp
+        src/MSHook/util.cpp
+        )
+
 set(WHALE_ANDROID_ART
         src/android/art/native_on_load.cc
+        src/android/art/art_helper.cpp
         src/android/art/art_runtime.cc
         src/android/art/art_symbol_resolver.cc
         src/android/art/java_types.cc
@@ -73,6 +86,15 @@ set(WHALE_ANDROID_ART
         src/android/art/art_method.cc
         src/android/art/scoped_thread_state_change.cc
         src/android/art/art_jni_trampoline.cc
+        #dex
+        src/android/dex/DexManager.cpp
+        #hook_modules
+        src/android/hook_module/JNIHookManager.cpp
+        src/android/hook_module/world.cpp
+        #base_tool
+        src/base/process_util.cpp
+        src/base/str_util.cpp
+        native-lib.cpp # func test
         )
 
 set(WHALE_AARCH32
@@ -151,7 +173,7 @@ endif ()
 
 if (PLATFORM STREQUAL "Android")
 
-    set(WHALE_SOURCES ${WHALE_SOURCES} ${WHALE_ANDROID_ART})
+    set(WHALE_SOURCES ${WHALE_SOURCES} ${WHALE_ANDROID_ART} ${MSHOOK})
 
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
 
