@@ -1,12 +1,14 @@
 package com.lody.whale;
 
-import android.os.Build;
-
+import com.lody.whale.wrapper.DeviceInfo;
+import com.lody.whale.wrapper.LogWrapper;
 import com.lody.whale.xposed.XposedBridge;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Lody
@@ -14,9 +16,22 @@ import java.lang.reflect.Method;
  * NOTICE: Do not move or rename any methods in this class.
  */
 public class WhaleRuntime {
+    private static final String TAG="WhaleRuntime";
+    public static final String LOAD_MODE_KEY="com.lody.whale.load_mode";
 
+    private static boolean loadLib() {
+        String loadMode=System.getProperty(LOAD_MODE_KEY,"java");
+        LogWrapper.log(LogWrapper.Level.ERROR,TAG,"LoadMode is:"+loadMode);
+        if(!loadMode.equals("jni")) {
+            System.loadLibrary("whale");
+        }
+        return true;
+    }
+
+    public static boolean CAN_WHALE=false;
     static {
-        System.loadLibrary("whale");
+        //System.loadLibrary("whale");
+        CAN_WHALE=loadLib();
     }
 
     private static String getShorty(Member member) {
@@ -24,7 +39,7 @@ public class WhaleRuntime {
     }
 
     public static long[] countInstancesOfClasses(Class[] classes, boolean assignable) {
-        if (Build.VERSION.SDK_INT < 27) {
+        if (DeviceInfo.getSDKInt() < 27) {
             throw new UnsupportedOperationException("Not support countInstancesOfClasses on your device yet.");
         }
         try {
@@ -37,7 +52,7 @@ public class WhaleRuntime {
     }
 
     public static Object[][] getInstancesOfClasses(Class[] classes, boolean assignable) {
-        if (Build.VERSION.SDK_INT < 28) {
+        if (DeviceInfo.getSDKInt() < 28) {
             throw new UnsupportedOperationException("Not support getInstancesOfClasses on your device yet.");
         }
         try {
@@ -59,6 +74,10 @@ public class WhaleRuntime {
     public static native long getMethodSlot(Member member) throws IllegalArgumentException;
 
     public static native long hookMethodNative(Class<?> declClass, Member method, Object additionInfo);
+
+    public static native void testHookNative();//测试native回调hook
+
+    public static native void handleCallAppOnCreate();
 
     public static native void setObjectClassNative(Object object, Class<?> parent);
 
