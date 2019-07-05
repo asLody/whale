@@ -69,8 +69,12 @@ static jmethodID CachePrimitiveBoxingMethod(JNIEnv *env, char prim_name, const c
                        StringPrintf("(%c)L%s;", prim_name, boxed_name).c_str());
 }
 
-
+static bool wkc_loaded=false;
 void WellKnownClasses::Load(JNIEnv *env) {
+    if(wkc_loaded){
+        LOG(INFO)<<"WellKnownClasses has been loaded,use the old one";
+        return;
+    }
     java_lang_Object = CacheClass(env, "java/lang/Object");
     java_lang_reflect_Method = CacheClass(env, "java/lang/reflect/Method");
     java_lang_Class = CacheClass(env, "java/lang/Class");
@@ -94,6 +98,8 @@ void WellKnownClasses::Load(JNIEnv *env) {
                                                                    "(Z)V");
 
     java_lang_Thread_nativePeer = CacheField(env, java_lang_Thread, false, "nativePeer", "J", true);
+
+    wkc_loaded=true;
 }
 
 

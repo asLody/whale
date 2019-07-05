@@ -1,8 +1,9 @@
+#include <android/dex/DexManager.h>
 #include "android/jni_helper.h"
 #include "android/art/art_runtime.h"
 #include "base/logging.h"
-
-#define CLASS_NAME "com/lody/whale/WhaleRuntime"
+#include "native_on_load.h"
+#include "../hook_module/world.h"
 
 #ifndef WHALE_ANDROID_AUTO_LOAD
 #define JNI_OnLoad Whale_OnLoad
@@ -17,7 +18,7 @@ static jlong
 WhaleRuntime_hookMethodNative(JNI_START, jclass decl_class, jobject method_obj,
                               jobject addition_info) {
     auto runtime = whale::art::ArtRuntime::Get();
-    return runtime->HookMethod(env, decl_class, method_obj, addition_info);
+    return runtime->HookMethod(env, decl_class, method_obj, addition_info,false);
 }
 
 static jobject
@@ -56,6 +57,17 @@ void WhaleRuntime_enforceDisableHiddenAPIPolicy(JNI_START) {
     runtime->EnforceDisableHiddenAPIPolicy();
 }
 
+void WhaleRuntime_handleCallAppOnCreate(JNI_START){
+    jobject app_classloader=whale::dex::get_app_classloader(env);
+    jobject sys_classloader=whale::dex::get_sys_classloader(env);
+    if(app_classloader==sys_classloader){//app_classloader has not been created yet.
+        LOG(INFO)<<"patch app_cl with sys_cl is too early";
+        return;
+    }
+    whale::dex::patch_class_loader(env,app_classloader,sys_classloader);
+    LOG(INFO)<<"patch app_cl finished";
+}
+
 
 static JNINativeMethod gMethods[] = {
         NATIVE_METHOD(WhaleRuntime, hookMethodNative,
@@ -69,25 +81,38 @@ static JNINativeMethod gMethods[] = {
         NATIVE_METHOD(WhaleRuntime, removeFinalFlagNative,
                       "(Ljava/lang/Class;)V"),
         NATIVE_METHOD(WhaleRuntime, enforceDisableHiddenAPIPolicy, "()V"),
+        NATIVE_METHOD(WhaleRuntime, handleCallAppOnCreate, "()V"),
         NATIVE_METHOD(WhaleRuntime, reserved0, "()V"),
         NATIVE_METHOD(WhaleRuntime, reserved1, "()V")
 };
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+    if(!GetJavaVM()){
+        LOG(INFO)<<"JavaVM has not been created yet,cannot run JNI_OnLoad";
+        return JNI_VERSION_1_4;
+    }
     JNIEnv *env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_4) != JNI_OK) {
         return -1;
     }
+    auto runtime = whale::art::ArtRuntime::Get();
     jclass cl = env->FindClass(CLASS_NAME);
-    if (cl == nullptr) {
-        LOG(ERROR) << "FindClass failed for " << CLASS_NAME;
-        return JNI_ERR;
+    if(env->ExceptionCheck())
+        env->ExceptionClear();
+    if (!cl) {
+        if(!runtime->check_java_mode(env, nullptr)) {//Manually load WhaleRuntime from dex.
+            LOG(ERROR) << "FindClass failed for " << CLASS_NAME;
+            return JNI_ERR;
+        }else{
+            cl=runtime->java_class_;
+        }
     }
+    //Register JNI Methods to WhaleRuntime,no matter how it is loaded.
     if (env->RegisterNatives(cl, gMethods, NELEM(gMethods)) < 0) {
         LOG(ERROR) << "RegisterNatives failed for " << CLASS_NAME;
         return JNI_ERR;
     }
-    auto runtime = whale::art::ArtRuntime::Get();
+    //Init environment.
     if (!runtime->OnLoad(vm, env, cl)) {
         LOG(ERROR) << "Runtime setup failed";
         return JNI_ERR;

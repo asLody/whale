@@ -13,6 +13,12 @@
 #include "base/macros.h"
 #include "base/primitive_types.h"
 
+#define CHECK_FIELD(field, value)  \
+    if ((field) == (value)) {  \
+        LOG(ERROR) << "Failed to find " #field ".";  \
+        return false;  \
+    }
+
 #if defined(__LP64__)
 static constexpr const char *kAndroidLibDir = "/system/lib64/";
 static constexpr const char *kLibNativeBridgePath = "/system/lib64/libnativebridge.so";
@@ -67,7 +73,13 @@ class ArtRuntime final {
     bool OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class);
 
     jlong HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_method,
-                     jobject addition_info);
+                     jobject addition_info,bool force_jni_style);
+
+    jlong HookMethodJNI(JNIEnv *env, jclass decl_class, jobject hooked_java_method,
+                              ptr_t replace);
+
+    jobjectArray ParseParamArray(JNIEnv *env,
+                                            jobject param_array[]/*这里面的参数顺序一定要一一对应*/, int array_size);
 
     JNIEnv *GetJniEnv() {
         JNIEnv *env = nullptr;
@@ -127,9 +139,13 @@ class ArtRuntime final {
 
     void FixBugN();
 
+    jclass java_class_;
+    bool check_java_mode(JNIEnv *env,jclass java_class);
+
  private:
     JavaVM *vm_;
-    jclass java_class_;
+    bool java_mode;
+
     jmethodID bridge_method_;
     s4 api_level_;
     void *art_elf_image_;
@@ -140,6 +156,9 @@ class ArtRuntime final {
     ArtMethodOffsets method_offset_;
     std::map<jmethodID, ArtHookParam *> hooked_method_map_;
     pthread_mutex_t mutex;
+
+    bool prepare_whale_dex(JNIEnv *env,bool update_global_class);
+
 
     bool EnforceDisableHiddenAPIPolicyImpl();
 

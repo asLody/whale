@@ -146,10 +146,14 @@ FFIType FFIGetJniParameter(char shorty) {
             UNREACHABLE();
     }
 }
-
-void FFIJniDispatcher(FFIClosure *closure, void *resp, void **args, void *userdata) {
 #define FFI_ARG(name, type)  \
     builder.Append##name(*reinterpret_cast<type *>(args[i]));
+
+#define INVOKE(type)  \
+    *reinterpret_cast<type *>(resp) = InvokeJavaBridge<type>(env, param, this_object,  \
+                                                                    builder.GetArray());
+void FFIJniDispatcher(FFIClosure *closure, void *resp, void **args, void *userdata) {
+
 
     ArtHookParam *param = reinterpret_cast<ArtHookParam *>(userdata);
     const char *argument = param->shorty_ + 1;
@@ -197,9 +201,6 @@ void FFIJniDispatcher(FFIClosure *closure, void *resp, void **args, void *userda
                 UNREACHABLE();
         }
     }
-#define INVOKE(type)  \
-    *reinterpret_cast<type *>(resp) = InvokeJavaBridge<type>(env, param, this_object,  \
-                                                                    builder.GetArray());
 
     switch (param->shorty_[0]) {
         case 'Z':
