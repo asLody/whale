@@ -1,4 +1,4 @@
-package com.pvdnc.hmtest;
+package com.yourpackagename.hmtest;
 
 import android.app.Activity;
 import android.app.Application;
