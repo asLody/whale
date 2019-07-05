@@ -1,8 +1,8 @@
 package com.lody.whale.xposed;
 
-import android.util.Log;
 
 import com.lody.whale.WhaleRuntime;
+import com.lody.whale.wrapper.LogWrapper;
 import com.lody.whale.xposed.XC_MethodHook.MethodHookParam;
 
 import java.lang.reflect.Constructor;
@@ -27,7 +27,6 @@ public final class XposedBridge {
      * The system class loader which can be used to locate Android framework classes.
      * Application classes cannot be retrieved from it.
      *
-     * @see ClassLoader#getSystemClassLoader
      */
     @SuppressWarnings("unused")
     public static final ClassLoader BOOTCLASSLOADER = ClassLoader.getSystemClassLoader();
@@ -50,7 +49,7 @@ public final class XposedBridge {
      */
     @SuppressWarnings("unused")
     public static void log(final String text) {
-        Log.i(TAG, text);
+        LogWrapper.log(LogWrapper.Level.INFO,TAG, text);
     }
 
     /**
@@ -59,7 +58,29 @@ public final class XposedBridge {
      * @param t The Throwable object for the stack trace.
      */
     public static void log(final Throwable t) {
-        Log.e(TAG, Log.getStackTraceString(t));
+        LogWrapper.e(TAG,t);
+    }
+
+    /**
+     * the static method is lazy resolved, when not resolved, the entry point is a trampoline of
+     * a bridge, we can not hook these entry. this method force the static method to be resolved.
+     */
+    public static void resolveStaticMethod(Member method) {
+        //ignore result, just call to trigger resolve
+        if (method == null)
+            return;
+        try {
+            if (method instanceof Method && Modifier.isStatic(method.getModifiers())) {
+                ((Method) method).setAccessible(true);
+                ((Method) method).invoke(new Object(), getFakeArgs((Method) method));
+            }
+        } catch (Exception ignored) {
+            // we should never make a successful call.
+        }
+    }
+
+    private static Object[] getFakeArgs(Method method) {
+        return method.getParameterTypes().length == 0 ? new Object[]{new Object()} : null;
     }
 
     /**
@@ -69,11 +90,7 @@ public final class XposedBridge {
      * @param hookMethod The method to be hooked.
      * @param callback   The callback to be executed when the hooked method is called.
      * @return An object that can be used to remove the hook.
-     * @see XposedHelpers#findAndHookMethod(String, ClassLoader, String, Object...)
-     * @see XposedHelpers#findAndHookMethod(Class, String, Object...)
      * @see #hookAllMethods
-     * @see XposedHelpers#findAndHookConstructor(String, ClassLoader, Object...)
-     * @see XposedHelpers#findAndHookConstructor(Class, Object...)
      * @see #hookAllConstructors
      */
     public static XC_MethodHook.Unhook hookMethod(final Member hookMethod, final XC_MethodHook callback) {
@@ -98,7 +115,7 @@ public final class XposedBridge {
         callbacks.add(callback);
 
         if (newMethod) {
-            XposedHelpers.resolveStaticMethod(hookMethod);
+            resolveStaticMethod(hookMethod);
             AdditionalHookInfo additionalInfo = new AdditionalHookInfo(callbacks);
             long slot = WhaleRuntime.hookMethodNative(hookMethod.getDeclaringClass(), hookMethod, additionalInfo);
             if (slot <= 0) {
