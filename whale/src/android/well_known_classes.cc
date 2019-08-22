@@ -1,11 +1,9 @@
-#include "android/art/well_known_classes.h"
+#include "android/well_known_classes.h"
 #include "android/jni_helper.h"
 #include "base/logging.h"
+#include "android_build.h"
 #include "base/stringprintf.h"
-
 namespace whale {
-namespace art {
-
 jclass WellKnownClasses::java_lang_Object;
 jclass WellKnownClasses::java_lang_reflect_Method;
 jclass WellKnownClasses::java_lang_Class;
@@ -92,10 +90,9 @@ void WellKnownClasses::Load(JNIEnv *env) {
                                                                    false,
                                                                    "setAccessible",
                                                                    "(Z)V");
-
-    java_lang_Thread_nativePeer = CacheField(env, java_lang_Thread, false, "nativePeer", "J", true);
+    if(isArt(env))
+    {
+        java_lang_Thread_nativePeer = CacheField(env, java_lang_Thread, false, "nativePeer", "J", true);
+    }
 }
-
-
-}  // namespace art
 }  // namespace whale

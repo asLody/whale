@@ -13,20 +13,6 @@
 #include "base/macros.h"
 #include "base/primitive_types.h"
 
-#if defined(__LP64__)
-static constexpr const char *kAndroidLibDir = "/system/lib64/";
-static constexpr const char *kLibNativeBridgePath = "/system/lib64/libnativebridge.so";
-static constexpr const char *kLibArtPath = "/system/lib64/libart.so";
-static constexpr const char *kLibAocPath = "/system/lib64/libaoc.so";
-static constexpr const char *kLibHoudiniArtPath = "/system/lib64/arm64/libart.so";
-#else
-static constexpr const char *kAndroidLibDir = "/system/lib/";
-static constexpr const char *kLibArtPath = "/system/lib/libart.so";
-static constexpr const char *kLibAocPath = "/system/lib/libaoc.so";
-static constexpr const char *kLibHoudiniArtPath = "/system/lib/arm/libart.so";
-#endif
-
-
 namespace whale {
 namespace art {
 
@@ -60,6 +46,8 @@ class ArtRuntime final {
  public:
     friend class ArtMethod;
 
+	bool isArt = false;
+
     static ArtRuntime *Get();
 
     ArtRuntime() {}
@@ -89,7 +77,7 @@ class ArtRuntime final {
         return &class_linker_objects_;
     }
 
-    ResolvedSymbols *GetSymbols() {
+    ArtResolvedSymbols *GetSymbols() {
         return art_symbol_resolver_.GetSymbols();
     }
 

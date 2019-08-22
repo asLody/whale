@@ -4,7 +4,7 @@
 #include <jni.h>
 #include <android/android_build.h>
 #include "android/art/art_runtime.h"
-#include "android/art/modifiers.h"
+#include "android/modifiers.h"
 #include "base/cxx_helper.h"
 #include "base/primitive_types.h"
 
@@ -135,7 +135,7 @@ class ArtMethod final {
     jmethodID jni_method_;
     // Convenient for quick invocation
     ArtMethodOffsets *offset_;
-    ResolvedSymbols *symbols_;
+    ArtResolvedSymbols *symbols_;
 };
 
 

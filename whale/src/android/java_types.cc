@@ -1,7 +1,6 @@
-#include "android/art/java_types.h"
+#include "android/java_types.h"
 
 namespace whale {
-namespace art {
 
 #define EXPORT_LANG_ClASS(c) jclass Types::java_lang_##c;  jmethodID Types::java_lang_##c##_init; jmethodID Types::java_value_##c;
 
@@ -18,7 +17,8 @@ EXPORT_LANG_ClASS(Character);
 
 void Types::Load(JNIEnv *env) {
     jclass clazz;
-    env->PushLocalFrame(16);
+    env->PushLocalFrame(16);//这使得PushLocalFrame函数可以释放其使用的框架中所有已分配的本地引用。当该函数被调用时，
+                            //本地引用的最低数量将在本框架中被创建。该函数如果执行成功则返回0，如果由于错误抛出一个OutOfMemoryException，则返回一个负值。
 
 #define LOAD_CLASS(c, s)        clazz = env->FindClass(s); c = reinterpret_cast<jclass>(env->NewWeakGlobalRef(clazz))
 #define LOAD_LANG_CLASS(c, s)   LOAD_CLASS(java_lang_##c, "java/lang/" #c); java_lang_##c##_init = env->GetMethodID(java_lang_##c, "<init>", s)
@@ -95,5 +95,4 @@ jobject Types::FromObject(JNIEnv *env, jobject obj) {
 #undef LANG_UNBOX_V
 #undef LANG_UNBOX
 
-}  // namespace art
 }  // namespace whale

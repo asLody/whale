@@ -8,7 +8,7 @@
 namespace whale {
 namespace art {
 
-struct ResolvedSymbols {
+struct ArtResolvedSymbols {
     const char *(*Art_GetMethodShorty)(JNIEnv *, jmethodID);
 
     void (*Dbg_SuspendVM)();
@@ -40,12 +40,12 @@ class ArtSymbolResolver {
 
     bool Resolve(void *elf_image, s4 api_level);
 
-    ResolvedSymbols *GetSymbols() {
+    ArtResolvedSymbols *GetSymbols() {
         return &symbols_;
     };
 
  private:
-    ResolvedSymbols symbols_;
+    ArtResolvedSymbols symbols_;
 };
 
 }  // namespace art

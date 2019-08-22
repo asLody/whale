@@ -4,8 +4,6 @@
 #include "base/primitive_types.h"
 
 namespace whale {
-namespace art {
-
 static constexpr u4 kAccPublic = 0x0001;  // class, field, method, ic
 static constexpr u4 kAccPrivate = 0x0002;  // field, method, ic
 static constexpr u4 kAccProtected = 0x0004;  // field, method, ic
@@ -52,7 +50,5 @@ static constexpr uint32_t kAccDirectFlags = kAccStatic | kAccPrivate | kAccConst
 static constexpr uint32_t kAccPublicApi =             0x10000000;  // field, method
 static constexpr uint32_t kAccHiddenapiBits =         0x30000000;  // field, method
 
-}  // namespace art
-}  // namespace whale
-
+} // namespace whale
 #endif  // WHALE_ANDROID_ART_MODIFIERS_H_

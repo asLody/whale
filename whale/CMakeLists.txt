@@ -64,15 +64,25 @@ set(WHALE_DARWIN_SOURCES
         src/dbi/darwin/macho_import_hook.cc
         )
 
+set(WHALE_ANDROID_COMMON
+    src/android/native_on_load.cc
+    src/android/java_types.cc
+    src/android/well_known_classes.cc
+    src/android/scoped_thread_state_change.cc
+)
+
 set(WHALE_ANDROID_ART
-        src/android/art/native_on_load.cc
         src/android/art/art_runtime.cc
         src/android/art/art_symbol_resolver.cc
-        src/android/art/java_types.cc
-        src/android/art/well_known_classes.cc
         src/android/art/art_method.cc
-        src/android/art/scoped_thread_state_change.cc
         src/android/art/art_jni_trampoline.cc
+        )
+
+set(WHALE_ANDROID_DVM
+        src/android/dvm/dvm_runtime.cc
+        src/android/dvm/dvm_symbol_resolver.cc
+        src/android/dvm/dvm_method.cc
+        src/android/dvm/dvm_jni_trampoline.cc
         )
 
 set(WHALE_AARCH32
@@ -151,7 +161,7 @@ endif ()
 
 if (PLATFORM STREQUAL "Android")
 
-    set(WHALE_SOURCES ${WHALE_SOURCES} ${WHALE_ANDROID_ART})
+    set(WHALE_SOURCES ${WHALE_SOURCES} ${WHALE_ANDROID_ART} ${WHALE_ANDROID_DVM} ${WHALE_ANDROID_COMMON})
 
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
 

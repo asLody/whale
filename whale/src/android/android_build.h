@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <sys/system_properties.h>
+#include <jni.h>
+#include "base/logging.h"
+
 
 #define ANDROID_ICE_CREAM_SANDWICH      14
 #define ANDROID_ICE_CREAM_SANDWICH_MR1  15
@@ -21,10 +24,27 @@
 #define ANDROID_O_MR1                   27
 #define ANDROID_P                       28
 
+
+
+extern bool g_isArt;
+
 static inline int32_t GetAndroidApiLevel() {
-    char prop_value[PROP_VALUE_MAX];
+    char prop_value[PROP_VALUE_MAX] = {0x0};
     __system_property_get("ro.build.version.sdk", prop_value);
     return atoi(prop_value);
 }
 
+static inline bool isArt(JNIEnv *env) {
+    jclass System = env->FindClass("java/lang/System");
+    jmethodID System_getProperty = env->GetStaticMethodID(System, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
+
+    jstring vm_version_name = env->NewStringUTF("java.vm.version");
+    jstring vm_version_value = (jstring)(env->CallStaticObjectMethod(System, System_getProperty, vm_version_name));
+
+    char *cvm_version_value = (char *)env->GetStringUTFChars(vm_version_value, NULL);
+    LOG(ERROR)<<"[ArtRuntime::OnLoad] cvm_version_value=" << cvm_version_value;
+    double version = atof(cvm_version_value);
+    g_isArt = version >= 2 ? true : false;
+    return g_isArt;
+}
 #endif  // WHALE_ANDROID_ANDROID_BUILD_H_

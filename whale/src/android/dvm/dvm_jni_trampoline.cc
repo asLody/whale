@@ -1,15 +1,15 @@
 #include <cstdarg>
 #include <jni.h>
-#include "android/art/art_jni_trampoline.h"
+#include "android/dvm/dvm_jni_trampoline.h"
 #include "android/java_types.h"
 #include "android/well_known_classes.h"
-#include "android/art/art_runtime.h"
+#include "android/dvm/dvm_runtime.h"
 #include "platform/memory.h"
 #include "base/macros.h"
 #include "ffi_cxx.h"
 
 namespace whale {
-namespace art {
+namespace dvm {
 
 static void UnBoxValue(JNIEnv *env, jvalue *jv, jobject obj, char type) {
     if (obj == nullptr) {
@@ -48,9 +48,9 @@ static void UnBoxValue(JNIEnv *env, jvalue *jv, jobject obj, char type) {
 
 template<typename RetType>
 static RetType
-InvokeJavaBridge(JNIEnv *env, ArtHookParam *param, jobject this_object,
-                 jobjectArray arguments) {
-    jobject ret = ArtRuntime::Get()->InvokeHookedMethodBridge(
+InvokeJavaBridge(JNIEnv *env, DvmHookParam *param, jobject this_object,
+                 jobjectArray arguments) {               
+    jobject ret = DvmRuntime::Get()->InvokeHookedMethodBridge(
             env,
             param,
             this_object,
@@ -61,9 +61,9 @@ InvokeJavaBridge(JNIEnv *env, ArtHookParam *param, jobject this_object,
     return ForceCast<RetType>(val);
 }
 
-static void InvokeVoidJavaBridge(JNIEnv *env, ArtHookParam *param, jobject this_object,
-                                 jobjectArray arguments) {
-    ArtRuntime::Get()->InvokeHookedMethodBridge(
+static void InvokeVoidJavaBridge(JNIEnv *env, DvmHookParam *param, jobject this_object,
+                                 jobjectArray arguments) { 
+    DvmRuntime::Get()->InvokeHookedMethodBridge(
             env,
             param,
             this_object,
@@ -151,7 +151,7 @@ void FFIJniDispatcher(FFIClosure *closure, void *resp, void **args, void *userda
 #define FFI_ARG(name, type)  \
     builder.Append##name(*reinterpret_cast<type *>(args[i]));
 
-    ArtHookParam *param = reinterpret_cast<ArtHookParam *>(userdata);
+    DvmHookParam *param = reinterpret_cast<DvmHookParam *>(userdata);
     const char *argument = param->shorty_ + 1;
     unsigned int argument_len = (unsigned int) strlen(argument);
     JNIEnv *env = *reinterpret_cast<JNIEnv **>(args[0]);
@@ -162,7 +162,7 @@ void FFIJniDispatcher(FFIClosure *closure, void *resp, void **args, void *userda
     // skip first two arguments
     args += 2;
     QuickArgumentBuilder builder(env, argument_len);
-
+	
     for (int i = 0; i < argument_len; ++i) {
         switch (argument[i]) {
             case 'Z':
@@ -241,7 +241,7 @@ void FFIJniDispatcher(FFIClosure *closure, void *resp, void **args, void *userda
 }
 
 
-void BuildJniClosure(ArtHookParam *param) {
+void BuildJniClosure(DvmHookParam *param) {
     const char *argument = param->shorty_ + 1;
     unsigned int java_argument_len = (unsigned int) strlen(argument);
     unsigned int jni_argument_len = java_argument_len + 2;
@@ -257,5 +257,5 @@ void BuildJniClosure(ArtHookParam *param) {
     param->jni_closure_ = cif->CreateClosure(param, FFIJniDispatcher);
 }
 
-}  // namespace art
+}  // namespace dvm
 }  // namespace whale
