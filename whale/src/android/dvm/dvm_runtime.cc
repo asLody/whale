@@ -219,7 +219,23 @@ DvmRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_metho
 	hooked_jni_->nativeFunc = jniBridge_;//jni函数的入口是一个固定值，从JNI_Onload获取初始值，稍后再赋值
 	hooked_jni_->registersSize = hooked_jni_->insSize;
 	hooked_jni_->outsSize = 0x0;
-	hooked_jni_->noRef = true;
+
+    /*
+    * JNI: true if this method has no reference arguments. This lets the JNI
+    * bridge avoid scanning the shorty for direct pointers that need to be
+    * converted to local references.
+    *
+    * TODO: replace this with a list of indexes of the reference arguments.
+    */
+    hooked_jni_->noRef = true;
+    const char* cp = hooked_jni_->shorty;
+    while (*++cp != '\0') { // Pre-increment to skip return type.
+        if (*cp == 'L') {
+            hooked_jni_->noRef = false;
+            break;
+        }
+    }
+
     param->decl_class_ = hooked_method.GetDeclaringClass();
     hooked_method_map_.insert(std::make_pair(hooked_jni_method, param));
 	hex_dump(hooked_jni_, sizeof(Method));
