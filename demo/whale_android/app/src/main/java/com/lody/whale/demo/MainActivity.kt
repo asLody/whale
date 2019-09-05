@@ -6,9 +6,9 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.easoll.whale_android.R
 import com.lody.whale.xposed.XC_MethodHook
 import com.lody.whale.xposed.XposedBridge
+import com.lody.whale_android.R
 import java.lang.RuntimeException
 
 /**

@@ -7,7 +7,7 @@ apply plugin: 'kotlin-android-extensions'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "com.easoll.whale_android"
+        applicationId "com.lody.whale_android"
         minSdkVersion 18
         targetSdkVersion 28
         versionCode 1
