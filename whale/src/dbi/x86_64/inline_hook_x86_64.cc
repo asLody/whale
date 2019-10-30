@@ -16,8 +16,8 @@ void X86_64InlineHook::StartHook() {
     CHECK(address_ != 0 && replace_ != 0);
     X86_64Assembler masm;
 
-    __ movq(R12, Immediate(replace_));
-    __ jmp(R12);
+    __ movq(RAX, Immediate(replace_));
+    __ jmp(RAX);
     masm.FinalizeCode();
 
     size_t backup_size = masm.GetBuffer()->Size();
