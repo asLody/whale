@@ -32,7 +32,7 @@ void arm::ArmInstructionRewriter::Rewrite() {
 void ArmInstructionRewriter::RewriteArm() {
     u4 pc = cfg_pc_ + 8;
     u4 *instructions = code_->GetInstructions<u4>();
-    for (int i = 0; i < code_->GetCount<u2>(); ++i) {
+    for (int i = 0; i < code_->GetCount<u4>(); ++i) {
         u4 insn = instructions[i];
         ArmInsnType type = DecodeArm(insn);
         switch (type) {
