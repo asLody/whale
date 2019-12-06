@@ -2,7 +2,7 @@
 #define WHALE_BASE_CXX_HELPER_H_
 
 #include <cstdlib>
-#include "base/primitive_types.h"
+#include "primitive_types.h"
 
 template<typename U, typename T>
 U ForceCast(T *x) {
@@ -50,4 +50,13 @@ static inline void AssignOffset(ptr_t ptr, size_t offset, T member) {
     *OffsetOf<T *>(ptr, offset) = member;
 }
 
+template<typename T>
+static inline offset_t GetOffsetByValue(ptr_t obj, T expected_value){
+    for (offset_t offset = 0; offset != sizeof(T) * 24; offset += sizeof(T)) {
+        if (MemberOf<T>(obj, offset) == expected_value) {
+            return offset;
+        }
+    }
+    return INT32_MAX;
+}
 #endif  // WHALE_BASE_CXX_HELPER_H_

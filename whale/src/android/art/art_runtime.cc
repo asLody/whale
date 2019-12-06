@@ -1,4 +1,5 @@
 #include <dlfcn.h>
+#include <android/dex/DexManager.h>
 #include "whale.h"
 #include "android/android_build.h"
 #include "android/art/art_runtime.h"
@@ -14,6 +15,7 @@
 #include "base/logging.h"
 #include "base/singleton.h"
 #include "base/cxx_helper.h"
+#include "art_helper.h"
 
 namespace whale {
 namespace art {
@@ -29,13 +31,85 @@ void PreLoadRequiredStuff(JNIEnv *env) {
     ScopedNoGCDaemons::Load(env);
 }
 
+void set_java_property(JNIEnv *env, const char* key,const char* value){
+    jclass sys_class=env->FindClass("java/lang/System");
+    jmethodID set_method=env->GetStaticMethodID(sys_class,
+            "setProperty",
+            "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+    env->CallStaticObjectMethod(sys_class,set_method,
+            env->NewStringUTF(key),
+            env->NewStringUTF(value));
+}
+
+static bool whale_dex_loaded=false;
+bool ArtRuntime::prepare_whale_dex(JNIEnv *env,bool update_global_class){
+    if(java_mode)return true;
+    char app_in_dex_path[1024]={0};
+    //Try to get app's whale dex dir
+    const char* app_dex_dir=env->GetStringUTFChars(whale::dex::get_dir(env,"whale"), nullptr);
+    sprintf(app_in_dex_path,"%s/%s\0",app_dex_dir,"whale.dex");
+    const char* c_dex_path= app_in_dex_path;
+    if(access(app_in_dex_path,F_OK)!=0){
+        c_dex_path=DEX_PATH;
+        LOG(INFO)<<"app_in:"<<app_in_dex_path<<" is not found.\n"<<"try to use "<<DEX_PATH<<" one";
+    }
+    if(!c_dex_path||(access(c_dex_path,F_OK)!=0))//whale dex does not exist.
+        return false;
+    jstring opt_path=whale::dex::get_dir(env,"optDex");
+    jobject dex_class_loader=whale::dex::new_dex_class_loader(env,c_dex_path,
+            env->GetStringUTFChars(opt_path, nullptr),
+            c_dex_path/*lib should have been loaded into app*/);
+    if(!whale_dex_loaded) {
+        whale::dex::patch_class_loader(env,
+                                       whale::dex::get_app_classloader(env),
+                                       dex_class_loader);
+        set_java_property(env,"com.lody.whale.load_mode","jni");//Need not to loadLibrary("whale") again.
+    }
+    if(!WellKnownClasses::java_lang_ClassLoader)//Ensure that WellKnownClasses has been initialized.
+        WellKnownClasses::Load(env);
+    jmethodID load_class=env->GetMethodID(WellKnownClasses::java_lang_ClassLoader,
+            "loadClass",
+            "(Ljava/lang/String;)Ljava/lang/Class;");
+    jobject app_classloader=whale::dex::get_app_classloader(env);
+    LOG(INFO)<<"app_classloader:"<<app_classloader;
+    jclass runtime_class=(jclass)env->CallObjectMethod(app_classloader,load_class,
+            env->NewStringUTF(J_CLASS_NAME)/*must be a java String,or throw a stale reference JNI error.*/);
+    if(runtime_class) {
+        whale_dex_loaded = true;
+        LOG(INFO)<<"loaded whale dex:"<<c_dex_path;
+    }
+    //Set java_class_ to loaded dex class(which contains WhaleRuntime).
+    if(update_global_class) {
+        if(java_class_)
+            env->DeleteGlobalRef(java_class_);
+        java_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(runtime_class));
+    }
+    return !TryCatch(env);//ClassNotFound
+}
+
+bool ArtRuntime::check_java_mode(JNIEnv *env,jclass java_class){
+    jclass runtime_class= java_class;
+    if(!runtime_class){//ClassNotFound
+        if(prepare_whale_dex(env,true)){
+            return check_java_mode(env,java_class_);
+        }
+        //java_mode=false;
+        return false;
+    }else{
+        //java_mode=true;
+        if(!java_class_)//Reset java_class_ to runtime_class
+            java_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(runtime_class));
+        bridge_method_ = env->GetStaticMethodID(
+                java_class_,
+                "handleHookedMethod",
+                "(Ljava/lang/reflect/Member;JLjava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;"
+        );//Get java jump-bridge(hand out).
+        return !TryCatch(env);
+    }
+}
 
 bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
-#define CHECK_FIELD(field, value)  \
-    if ((field) == (value)) {  \
-        LOG(ERROR) << "Failed to find " #field ".";  \
-        return false;  \
-    }
+
     if ((kRuntimeISA == InstructionSet::kArm
          || kRuntimeISA == InstructionSet::kArm64)
         && IsFileInMemory("libhoudini.so")) {
@@ -43,17 +117,15 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
         return false;
     }
     vm_ = vm;
-    java_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(java_class));
-    bridge_method_ = env->GetStaticMethodID(
-            java_class,
-            "handleHookedMethod",
-            "(Ljava/lang/reflect/Member;JLjava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;"
-    );
-    if (JNIExceptionCheck(env)) {
-        return false;
+    java_mode= check_java_mode(env,java_class);//Check whether we have WhaleRuntime class loaded in Java.
+    if(!java_mode){
+        //Ensure switching the state to native mode.
+        java_class_= nullptr;
+        bridge_method_= nullptr;
     }
     api_level_ = GetAndroidApiLevel();
     PreLoadRequiredStuff(env);
+    //解析未导出符号
     const char *art_path = kLibArtPath;
     art_elf_image_ = WDynamicLibOpen(art_path);
     if (art_elf_image_ == nullptr) {
@@ -69,26 +141,48 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
 
     size_t entrypoint_filed_size = (api_level_ <= ANDROID_LOLLIPOP) ? 8
                                                                     : kPointerSize;
-    u4 expected_access_flags = kAccPrivate | kAccStatic | kAccNative;
-    jmethodID reserved0 = env->GetStaticMethodID(java_class, kMethodReserved0, "()V");
-    jmethodID reserved1 = env->GetStaticMethodID(java_class, kMethodReserved1, "()V");
+    u4 expected_access_flags;
+    jmethodID reserved0= nullptr;
+    jmethodID reserved1 = nullptr;
+    ptr_t native_function= nullptr;
 
-    for (offset_t offset = 0; offset != sizeof(u4) * 24; offset += sizeof(u4)) {
-        if (MemberOf<u4>(reserved0, offset) == expected_access_flags) {
-            access_flags_offset = offset;
-            break;
-        }
-    }
-    void *native_function = reinterpret_cast<void *>(WhaleRuntime_reserved0);
+    //TODO_D:setting java_mode in OnLoad to false is only for test.
+    //java_mode=false;
+    //prepare_whale_dex(env,true);
 
-    for (offset_t offset = 0; offset != sizeof(u4) * 24; offset += sizeof(u4)) {
-        if (MemberOf<ptr_t>(reserved0, offset) == native_function) {
-            jni_code_offset = offset;
-            break;
+    if(java_mode){
+        java_class=java_class_;//Ensure java_class is not nullptr.
+        expected_access_flags=kAccPrivate | kAccStatic | kAccNative;
+        reserved0 = env->GetStaticMethodID(java_class, kMethodReserved0, "()V");
+        native_function = reinterpret_cast<void *>(WhaleRuntime_reserved0);
+        if(JNIExceptionCheck(env)){
+            return false;
         }
+        reserved1 = env->GetStaticMethodID(java_class, kMethodReserved1, "()V");
+        if(JNIExceptionCheck(env)){
+            return false;
+        }
+        LOG(INFO)<<"get offset using stub method";
+    }else{
+        expected_access_flags=kAccPrivate|kAccNative|kAccFastNative;//524546 我也不知道为什么会有fast_native
+        jclass obj_class=env->FindClass("java/lang/Object");
+        if(JNIExceptionCheck(env)||!obj_class)
+            return false;
+        reserved0=env->GetMethodID(obj_class,"internalClone","()Ljava/lang/Object;");
+        reserved1 =env->GetMethodID(obj_class,"clone","()Ljava/lang/Object;");//524292
+        native_function=WDynamicLibSymbol(art_elf_image_,"_ZN3artL20Object_internalCloneEP7_JNIEnvP8_jobject");
+        LOG(INFO)<<"get offset using Object(JNI-style support only)";
     }
+    access_flags_offset=GetOffsetByValue(reserved0,expected_access_flags);
+    if(!native_function)
+        return false;
+    jni_code_offset=GetOffsetByValue(reserved0,native_function);
+
     CHECK_FIELD(access_flags_offset, INT32_MAX)
     CHECK_FIELD(jni_code_offset, INT32_MAX)
+    //输出获取到的两个偏移
+    LOG(INFO)<<"access_flags_offset:"<<access_flags_offset;
+    LOG(INFO)<<"jni_code_offset:"<<jni_code_offset;
 
     method_offset_.method_size_ = DistanceOf(reserved0, reserved1);
     method_offset_.jni_code_offset_ = jni_code_offset;
@@ -108,7 +202,8 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
             art_elf_image_,
             "art_quick_generic_jni_trampoline"
     );
-    env->CallStaticVoidMethod(java_class, reserved0);
+    if(java_mode)//Resolve static method.
+        env->CallStaticVoidMethod(java_class, reserved0);
 
     /**
      * Fallback to do a relative memory search for quick_generic_jni_trampoline,
@@ -187,8 +282,8 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
 
 
 jlong
-ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_method,
-                       jobject addition_info) {
+ArtRuntime::HookMethodJNI(JNIEnv *env, jclass decl_class, jobject hooked_java_method,
+                       ptr_t replace) {
     ScopedSuspendAll suspend_all;
 
     jmethodID hooked_jni_method = env->FromReflectedMethod(hooked_java_method);
@@ -245,17 +340,109 @@ ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_metho
     }
     param->origin_native_method_ = env->FromReflectedMethod(origin_java_method);
     param->hooked_native_method_ = hooked_jni_method;
-    param->addition_info_ = env->NewGlobalRef(addition_info);
+    //param->addition_info_ = env->NewGlobalRef(addition_info);
     param->hooked_method_ = env->NewGlobalRef(hooked_java_method);
     param->origin_method_ = env->NewGlobalRef(origin_java_method);
 
-    BuildJniClosure(param);
 
-    hooked_method.SetEntryPointFromJni(param->jni_closure_->GetCode());
+        LOG(INFO)<<"hook in jni-style";
+        LOG(INFO)<<"replace method address:"<<replace;
+        hooked_method.SetEntryPointFromJni(replace);
+
     param->decl_class_ = hooked_method.GetDeclaringClass();
     hooked_method_map_.insert(std::make_pair(hooked_jni_method, param));
     return reinterpret_cast<jlong>(param);
 }
+
+    jlong
+    ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_method,
+                           jobject addition_info/*As for jni-style hook, it points to replace method.*/,
+                           bool force_jni_style) {
+        ScopedSuspendAll suspend_all;
+
+        jmethodID hooked_jni_method = env->FromReflectedMethod(hooked_java_method);
+        ArtMethod hooked_method(hooked_jni_method);
+        auto *param = new ArtHookParam();
+
+        param->class_Loader_ = env->NewGlobalRef(
+                env->CallObjectMethod(
+                        decl_class,
+                        WellKnownClasses::java_lang_Class_getClassLoader
+                )
+        );
+        param->shorty_ = hooked_method.GetShorty(env, hooked_java_method);
+        param->is_static_ = hooked_method.HasAccessFlags(kAccStatic);
+
+        param->origin_compiled_code_ = hooked_method.GetEntryPointFromQuickCompiledCode();
+        param->origin_code_item_off = hooked_method.GetDexCodeItemOffset();
+        param->origin_jni_code_ = hooked_method.GetEntryPointFromJni();
+        param->origin_access_flags = hooked_method.GetAccessFlags();
+        jobject origin_java_method = hooked_method.Clone(env, param->origin_access_flags);
+
+        ResolvedSymbols *symbols = GetSymbols();
+        if (symbols->ProfileSaver_ForceProcessProfiles) {
+            symbols->ProfileSaver_ForceProcessProfiles();
+        }
+        // After android P, hotness_count_ maybe an imt_index_ for abstract method
+        if ((api_level_ > ANDROID_P && !hooked_method.HasAccessFlags(kAccAbstract))
+            || api_level_ >= ANDROID_N) {
+            hooked_method.SetHotnessCount(0);
+        }
+        // Clear the dex_code_item_offset_.
+        // It needs to be 0 since hooked methods have no CodeItems but the
+        // method they copy might.
+        hooked_method.SetDexCodeItemOffset(0);
+        u4 access_flags = hooked_method.GetAccessFlags();
+        if (api_level_ < ANDROID_O_MR1) {
+            access_flags |= kAccCompileDontBother_N;
+        } else {
+            access_flags |= kAccCompileDontBother_O_MR1;
+            access_flags |= kAccPreviouslyWarm_O_MR1;
+        }
+        access_flags |= kAccNative;
+        access_flags |= kAccFastNative;
+        if (api_level_ >= ANDROID_P) {
+            access_flags &= ~kAccCriticalNative_P;
+        }
+        hooked_method.SetAccessFlags(access_flags);
+        hooked_method.SetEntryPointFromQuickCompiledCode(
+                class_linker_objects_.quick_generic_jni_trampoline_
+        );
+        if (api_level_ < ANDROID_N
+            && symbols->artInterpreterToCompiledCodeBridge != nullptr) {
+            hooked_method.SetEntryPointFromInterpreterCode(symbols->artInterpreterToCompiledCodeBridge);
+        }
+        param->origin_native_method_ = env->FromReflectedMethod(origin_java_method);
+        param->hooked_native_method_ = hooked_jni_method;
+        param->addition_info_ = env->NewGlobalRef(addition_info);
+        param->hooked_method_ = env->NewGlobalRef(hooked_java_method);
+        param->origin_method_ = env->NewGlobalRef(origin_java_method);
+
+        if(check_java_mode(env,java_class_)&&!force_jni_style) {//java-style hook(Xposed-style for default)
+            LOG(INFO)<<"hook in Xposed-style";
+            BuildJniClosure(param);
+            hooked_method.SetEntryPointFromJni(param->jni_closure_->GetCode());
+        }else{
+            LOG(INFO)<<"hook in jni-style";
+            LOG(INFO)<<"replace method address(addition_info):"<<addition_info;
+            hooked_method.SetEntryPointFromJni(addition_info);
+        }
+        param->decl_class_ = hooked_method.GetDeclaringClass();
+        hooked_method_map_.insert(std::make_pair(hooked_jni_method, param));
+        return reinterpret_cast<jlong>(param);
+    }
+
+    jobjectArray ArtRuntime::ParseParamArray(JNIEnv *env,
+                                            jobject param_array[]/*这里面的参数顺序一定要一一对应*/, int array_size) {
+        jclass obj_class=env->FindClass("java/lang/Object");
+        jobjectArray paramArray = env->NewObjectArray(array_size,
+                                                      obj_class,
+                                                      nullptr);
+        for (int i = 0; i < array_size; i++) {
+            env->SetObjectArrayElement(paramArray, i, param_array[i]);
+        }
+        return paramArray;
+    }
 
 jobject
 ArtRuntime::InvokeOriginalMethod(jlong slot, jobject this_object, jobjectArray args) {
@@ -355,7 +542,7 @@ jlong ArtRuntime::GetMethodSlot(JNIEnv *env, jclass cl, jobject method_obj) {
 }
 
 void ArtRuntime::EnsureClassInitialized(JNIEnv *env, jclass cl) {
-    // This invocation will ensure the target class has been initialized also.
+    // This invocation will ensure the targetPkgName class has been initialized also.
     ScopedLocalRef<jobject> unused(env, env->AllocObject(cl));
     JNIExceptionClear(env);
 }
@@ -486,6 +673,7 @@ void ArtRuntime::FixBugN() {
             "_ZNK3art20OatQuickMethodHeader7ToDexPcEPNS_9ArtMethodEjb"
     );
     if (symbol) {
+        LOG(INFO)<<"found ToDexPc symbol,inline hook it";
         WInlineHookFunction(symbol, reinterpret_cast<void *>(new_ToDexPc), reinterpret_cast<void **>(&old_ToDexPc));
     }
     is_hooked = true;

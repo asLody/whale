@@ -68,8 +68,6 @@ SYMBOL kArt_Object_CloneWithSize = "_ZN3art6mirror6Object5CloneEPNS_6ThreadEj";
 
 SYMBOL kArt_JniEnvExt_NewLocalRef = "_ZN3art9JNIEnvExt11NewLocalRefEPNS_6mirror6ObjectE";
 
-
-bool ArtSymbolResolver::Resolve(void *elf_image, s4 api_level) {
 #define FIND_SYMBOL(symbol, decl, ret)  \
         if ((decl = reinterpret_cast<typeof(decl)>(WDynamicLibSymbol(elf_image, symbol))) == nullptr) {  \
         if (ret) {  \
@@ -77,6 +75,12 @@ bool ArtSymbolResolver::Resolve(void *elf_image, s4 api_level) {
             return false;  \
          } \
         }
+        static bool symbol_resolved=false;
+bool ArtSymbolResolver::Resolve(void *elf_image, s4 api_level) {
+            if(symbol_resolved) {//Prevent twice resolve to cause complex problems.
+                LOG(INFO)<<"symbol has been resolved,use old result";
+                return true;
+            }
     FIND_SYMBOL(kArt_GetMethodShorty, symbols_.Art_GetMethodShorty, false);
     if (symbols_.Art_GetMethodShorty == nullptr) {
         FIND_SYMBOL(kArt_GetMethodShorty_Legacy, symbols_.Art_GetMethodShorty, false);
@@ -110,6 +114,8 @@ bool ArtSymbolResolver::Resolve(void *elf_image, s4 api_level) {
     }
     FIND_SYMBOL(kArt_DecodeJObject, symbols_.Thread_DecodeJObject, true);
     FIND_SYMBOL(kArt_JniEnvExt_NewLocalRef, symbols_.JniEnvExt_NewLocalRef, true);
+
+    symbol_resolved=true;
     return true;
 #undef FIND_SYMBOL
 }

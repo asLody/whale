@@ -1206,4 +1206,12 @@ public class ClassUtils {
         }
     }
 
+    public static List<Method> findMethodByName(Class clazz, String name){
+        List<Method> result=new ArrayList<>();
+        Method[] methods=clazz.getDeclaredMethods();
+        for(Method method:methods){
+            if(method.getName().equals(name)) result.add(method);
+        }
+        return result;
+    }
 }

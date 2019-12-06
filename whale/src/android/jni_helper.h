@@ -27,11 +27,13 @@ static inline bool JNIExceptionCheck(JNIEnv *env) {
     return false;
 }
 
-static inline void JNIExceptionClearAndDescribe(JNIEnv *env) {
+static inline bool TryCatch(JNIEnv *env) {
     if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();
+        return true;
     }
+    return false;
 }
 
 template<typename T>
