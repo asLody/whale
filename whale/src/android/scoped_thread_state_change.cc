@@ -1,10 +1,11 @@
 #include "android/jni_helper.h"
 #include "android/android_build.h"
-#include "android/art/scoped_thread_state_change.h"
-#include "art_runtime.h"
+#include "android/scoped_thread_state_change.h"
+#include "android/art/art_runtime.h"
+#include "android/dvm/dvm_runtime.h"
+
 
 namespace whale {
-namespace art {
 
 static volatile long kNoGCDaemonsGuard = 0;
 
@@ -33,6 +34,7 @@ void ScopedNoGCDaemons::Load(JNIEnv *env) {
     }
     java_lang_Daemons_stop = env->GetStaticMethodID(java_lang_Daemons, "stop", "()V");
     JNIExceptionClear(env);
+    LOG(ERROR) << "[ScopedNoGCDaemons::Load] ScopedNoGCDaemons::Load over";
 }
 
 ScopedNoGCDaemons::ScopedNoGCDaemons(JNIEnv *env) : env_(env) {
@@ -55,22 +57,40 @@ ScopedNoGCDaemons::~ScopedNoGCDaemons() {
 }
 
 ScopedSuspendAll::ScopedSuspendAll() {
-    ResolvedSymbols *symbols = art::ArtRuntime::Get()->GetSymbols();
-    if (symbols->Dbg_SuspendVM && symbols->Dbg_ResumeVM) {
-        symbols->Dbg_SuspendVM();
-    } else {
-        LOG(WARNING) << "Suspend VM API is unavailable.";
+    if(g_isArt){
+        LOG(ERROR) << "[ScopedSuspendAll::ScopedSuspendAll] isArt";
+        whale::art::ArtResolvedSymbols *symbols = whale::art::ArtRuntime::Get()->GetSymbols();
+		if (symbols->Dbg_SuspendVM && symbols->Dbg_ResumeVM) {
+            symbols->Dbg_SuspendVM();
+        } else {
+        	LOG(WARNING) << "Suspend art VM API is unavailable.";
+    	}
+    }else{
+        LOG(ERROR) << "[ScopedSuspendAll::ScopedSuspendAll] isDvm";
+        whale::dvm::DvmResolvedSymbols *symbols = whale::dvm::DvmRuntime::Get()->GetSymbols();
+		if (symbols->Dbg_SuspendVM && symbols->Dbg_ResumeVM) {
+            symbols->Dbg_SuspendVM(false);
+	    } else {
+	        LOG(WARNING) << "Suspend dvm VM API is unavailable.";
+	    }
     }
+    
 }
 
 ScopedSuspendAll::~ScopedSuspendAll() {
-    ResolvedSymbols *symbols = art::ArtRuntime::Get()->GetSymbols();
-    if (symbols->Dbg_SuspendVM && symbols->Dbg_ResumeVM) {
-        symbols->Dbg_ResumeVM();
+    if(g_isArt){
+    LOG(ERROR) << "[ScopedSuspendAll::~ScopedSuspendAll] m_isArt";
+        whale::art::ArtResolvedSymbols *art_symbols = whale::art::ArtRuntime::Get()->GetSymbols();
+        if (art_symbols->Dbg_SuspendVM && art_symbols->Dbg_ResumeVM) {
+                art_symbols->Dbg_ResumeVM();
+            }
+    }else{
+        LOG(ERROR) << "[ScopedSuspendAll::~ScopedSuspendAll] m_isDvm";
+        whale::dvm::DvmResolvedSymbols *dvm_symbols = whale::dvm::DvmRuntime::Get()->GetSymbols();
+        if (dvm_symbols->Dbg_SuspendVM && dvm_symbols->Dbg_ResumeVM) {
+                dvm_symbols->Dbg_ResumeVM();
+            }
     }
 }
-
-
-}  // namespace art
 }  // namespace whale
 

@@ -1,5 +1,5 @@
 #include "android/art/art_method.h"
-#include "well_known_classes.h"
+#include "android/well_known_classes.h"
 
 namespace whale {
 namespace art {

@@ -11,7 +11,7 @@ constexpr const char *kMethodReserved1 = "reserved1";
  */
 extern "C" {
 
-void WhaleRuntime_reserved0(JNIEnv *env, jclass cl);
+void WhaleRuntime_reserved0(JNIEnv *env, jclass cl, jint a, jint b);
 
 void WhaleRuntime_reserved1(JNIEnv *env, jclass cl);
 

@@ -2,14 +2,14 @@
 #include "whale.h"
 #include "android/android_build.h"
 #include "android/art/art_runtime.h"
-#include "android/art/modifiers.h"
-#include "android/art/native_on_load.h"
+#include "android/modifiers.h"
+#include "android/native_on_load.h"
 #include "android/art/art_method.h"
 #include "android/art/art_symbol_resolver.h"
-#include "android/art/scoped_thread_state_change.h"
+#include "android/scoped_thread_state_change.h"
 #include "android/art/art_jni_trampoline.h"
-#include "android/art/well_known_classes.h"
-#include "android/art/java_types.h"
+#include "android/well_known_classes.h"
+#include "android/java_types.h"
 #include "platform/memory.h"
 #include "base/logging.h"
 #include "base/singleton.h"
@@ -36,6 +36,7 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
         LOG(ERROR) << "Failed to find " #field ".";  \
         return false;  \
     }
+    LOG(ERROR)<<"[ArtRuntime::OnLoad] start call ArtRuntime::OnLoad";
     if ((kRuntimeISA == InstructionSet::kArm
          || kRuntimeISA == InstructionSet::kArm64)
         && IsFileInMemory("libhoudini.so")) {
@@ -60,6 +61,7 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
         LOG(ERROR) << "Unable to read data from libart.so.";
         return false;
     }
+    LOG(ERROR)<<"[ArtRuntime::OnLoad] start call art_symbol_resolver_.Resolve";
     if (!art_symbol_resolver_.Resolve(art_elf_image_, api_level_)) {
         // The log will all output from ArtSymbolResolver.
         return false;
@@ -210,7 +212,7 @@ ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_metho
     param->origin_access_flags = hooked_method.GetAccessFlags();
     jobject origin_java_method = hooked_method.Clone(env, param->origin_access_flags);
 
-    ResolvedSymbols *symbols = GetSymbols();
+    ArtResolvedSymbols *symbols = GetSymbols();
     if (symbols->ProfileSaver_ForceProcessProfiles) {
         symbols->ProfileSaver_ForceProcessProfiles();
     }
@@ -374,7 +376,7 @@ void ArtRuntime::SetObjectClassUnsafe(JNIEnv *env, jobject obj, jclass cl) {
 }
 
 jobject ArtRuntime::CloneToSubclass(JNIEnv *env, jobject obj, jclass sub_class) {
-    ResolvedSymbols *symbols = GetSymbols();
+    ArtResolvedSymbols *symbols = GetSymbols();
     ArtThread *thread = GetCurrentArtThread();
     ptr_t art_object = symbols->Thread_DecodeJObject(thread, obj);
     ptr_t art_clone_object = CloneArtObject(art_object);
@@ -461,7 +463,7 @@ ALWAYS_INLINE bool ArtRuntime::EnforceDisableHiddenAPIPolicyImpl() {
 }
 
 ptr_t ArtRuntime::CloneArtObject(ptr_t art_object) {
-    ResolvedSymbols *symbols = GetSymbols();
+    ArtResolvedSymbols *symbols = GetSymbols();
     if (symbols->Object_Clone) {
         return symbols->Object_Clone(art_object, GetCurrentArtThread());
     }

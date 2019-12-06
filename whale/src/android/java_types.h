@@ -2,11 +2,10 @@
 #define WHALE_ANDROID_ART_JAVA_TYPES_H_
 
 #include <jni.h>
-#include "android/art/art_runtime.h"
+
 
 
 namespace whale {
-namespace art {
 
 struct Types {
 #define LANG_ClASS(c) static jclass java_lang_##c; static jmethodID java_lang_##c##_init; static jmethodID java_value_##c;
@@ -55,7 +54,6 @@ struct Types {
 #undef LANG_UNBOX_DEF
 };
 
-}  // namespace art
 }  // namespace whale
 
 #endif  // WHALE_ANDROID_ART_JAVA_TYPES_H_

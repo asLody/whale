@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <jni.h>
 #include <asm/siginfo.h>
-
+namespace whale {
 struct NativeBridgeRuntimeCallbacks;
 struct NativeBridgeRuntimeValues;
 
@@ -126,6 +126,6 @@ struct NativeBridgeCallbacks {
     //     Otherwise, a pointer to the signal handler.
     NativeBridgeSignalHandlerFn (*getSignalHandler)(int signal);
 };
-
+} // namespace whale
 
 #endif  // WHALE_ANDROID_NATIVE_BRIDGE_H_

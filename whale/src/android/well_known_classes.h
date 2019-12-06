@@ -1,11 +1,8 @@
-#ifndef WHALE_ANDROID_ART_WELL_KNOWN_CLASSES_H_
-#define WHALE_ANDROID_ART_WELL_KNOWN_CLASSES_H_
+#ifndef WHALE_ANDROID_WELL_KNOWN_CLASSES_H_
+#define WHALE_ANDROID_WELL_KNOWN_CLASSES_H_
 
 #include <jni.h>
-
 namespace whale {
-namespace art {
-
 struct WellKnownClasses {
     static void Load(JNIEnv *env);
 
@@ -24,8 +21,5 @@ struct WellKnownClasses {
 
     static jfieldID java_lang_Thread_nativePeer;
 };
-
-}  // namespace art
 }  // namespace whale
-
-#endif  // WHALE_ANDROID_ART_WELL_KNOWN_CLASSES_H_
+#endif  // WHALE_ANDROID_WELL_KNOWN_CLASSES_H_
