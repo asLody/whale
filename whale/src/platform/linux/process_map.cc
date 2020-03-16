@@ -58,7 +58,7 @@ ForeachMemoryRange(std::function<bool(uintptr_t, uintptr_t, char *, char *)> cal
                 break;
             sscanf(buf, "%lx-%lx %s %lx %s %ld %s", &begin, &end, perm,
                    &foo, dev, &inode, mapname);
-            if (!callback(begin, end, perm, mapname)) {
+            if (!callback(begin - foo, end - foo, perm, mapname)) {
                 break;
             }
         }
