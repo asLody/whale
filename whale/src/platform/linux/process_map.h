@@ -37,7 +37,7 @@ std::unique_ptr<MemoryRange> FindExecuteMemoryRange(const char *name);
 
 std::unique_ptr<MemoryRange> FindFileMemoryRange(const char *name);
 
-void ForeachMemoryRange(std::function<bool(uintptr_t, uintptr_t, char *, char *)> callback);
+void ForeachMemoryRange(std::function<bool(uintptr_t, uintptr_t, uintptr_t, char *, char *)> callback);
 
 }  // namespace whale
 
