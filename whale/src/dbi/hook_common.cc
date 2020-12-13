@@ -36,7 +36,7 @@ void InterceptSysCallHook::StartHook() {
     bool stop_foreach = false;
 #if defined(linux)
     ForeachMemoryRange(
-            [&](uintptr_t begin, uintptr_t end, char *perm, char *mapname) -> bool {
+            [&](uintptr_t begin, uintptr_t end, uintptr_t offset, char *perm, char *mapname) -> bool {
                 if (strstr(perm, "x") && strstr(perm, "r")) {
                     if (callback_(mapname, &stop_foreach)) {
                         FindSysCalls(begin, end);

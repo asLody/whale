@@ -17,11 +17,15 @@
 static constexpr const char *kAndroidLibDir = "/system/lib64/";
 static constexpr const char *kLibNativeBridgePath = "/system/lib64/libnativebridge.so";
 static constexpr const char *kLibArtPath = "/system/lib64/libart.so";
+static constexpr const char *kLibArtPath_Q = "/apex/com.android.runtime/lib64/libart.so";
+static constexpr const char *kLibArtPath_R = "/apex/com.android.art/lib64/libart.so";
 static constexpr const char *kLibAocPath = "/system/lib64/libaoc.so";
 static constexpr const char *kLibHoudiniArtPath = "/system/lib64/arm64/libart.so";
 #else
 static constexpr const char *kAndroidLibDir = "/system/lib/";
 static constexpr const char *kLibArtPath = "/system/lib/libart.so";
+static constexpr const char *kLibArtPath_Q = "/apex/com.android.runtime/lib/libart.so";
+static constexpr const char *kLibArtPath_R = "/apex/com.android.art/lib/libart.so";
 static constexpr const char *kLibAocPath = "/system/lib/libaoc.so";
 static constexpr const char *kLibHoudiniArtPath = "/system/lib/arm/libart.so";
 #endif
@@ -126,6 +130,8 @@ class ArtRuntime final {
     ptr_t CloneArtObject(ptr_t art_object);
 
     void FixBugN();
+
+    void hookEncodeArtMethod();
 
  private:
     JavaVM *vm_;

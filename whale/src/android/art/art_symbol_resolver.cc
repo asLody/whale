@@ -106,7 +106,7 @@ bool ArtSymbolResolver::Resolve(void *elf_image, s4 api_level) {
         FIND_SYMBOL(kArt_Object_CloneWithSize, symbols_.Object_CloneWithSize, false);
     }
     if (symbols_.Object_Clone == nullptr) {
-        FIND_SYMBOL(kArt_Object_CloneWithClass, symbols_.Object_CloneWithClass, true);
+        FIND_SYMBOL(kArt_Object_CloneWithClass, symbols_.Object_CloneWithClass, false);
     }
     FIND_SYMBOL(kArt_DecodeJObject, symbols_.Thread_DecodeJObject, true);
     FIND_SYMBOL(kArt_JniEnvExt_NewLocalRef, symbols_.JniEnvExt_NewLocalRef, true);

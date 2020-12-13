@@ -54,7 +54,13 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
     }
     api_level_ = GetAndroidApiLevel();
     PreLoadRequiredStuff(env);
-    const char *art_path = kLibArtPath;
+    const char *art_path;
+    if (api_level_ >= ANDROID_R)
+        art_path = kLibArtPath_R;
+    else if (api_level_ >= ANDROID_Q)
+        art_path = kLibArtPath_Q;
+    else
+        art_path = kLibArtPath;
     art_elf_image_ = WDynamicLibOpen(art_path);
     if (art_elf_image_ == nullptr) {
         LOG(ERROR) << "Unable to read data from libart.so.";
@@ -70,6 +76,9 @@ bool ArtRuntime::OnLoad(JavaVM *vm, JNIEnv *env, jclass java_class) {
     size_t entrypoint_filed_size = (api_level_ <= ANDROID_LOLLIPOP) ? 8
                                                                     : kPointerSize;
     u4 expected_access_flags = kAccPrivate | kAccStatic | kAccNative;
+    if (api_level_ >= ANDROID_Q)
+            expected_access_flags |= kAccPublicApi;
+    hookEncodeArtMethod();
     jmethodID reserved0 = env->GetStaticMethodID(java_class, kMethodReserved0, "()V");
     jmethodID reserved1 = env->GetStaticMethodID(java_class, kMethodReserved1, "()V");
 
@@ -234,6 +243,9 @@ ArtRuntime::HookMethod(JNIEnv *env, jclass decl_class, jobject hooked_java_metho
     access_flags |= kAccFastNative;
     if (api_level_ >= ANDROID_P) {
         access_flags &= ~kAccCriticalNative_P;
+    }
+    if (api_level_ >= ANDROID_Q) {
+        access_flags &= ~kAccFastInterpreterToInterpreterInvoke;
     }
     hooked_method.SetAccessFlags(access_flags);
     hooked_method.SetEntryPointFromQuickCompiledCode(
@@ -457,6 +469,21 @@ ALWAYS_INLINE bool ArtRuntime::EnforceDisableHiddenAPIPolicyImpl() {
     if (symbol) {
         WInlineHookFunction(symbol, reinterpret_cast<void *>(OnInvokeHiddenAPI), nullptr);
     }
+    // Android Q : Release version
+    symbol = WDynamicLibSymbol(
+            art_elf_image_,
+            "_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_8ArtFieldEEEbPT_NS0_7ApiListENS0_12AccessMethodE"
+    );
+    if (symbol) {
+        WInlineHookFunction(symbol, reinterpret_cast<void *>(OnInvokeHiddenAPI), nullptr);
+    }
+    symbol = WDynamicLibSymbol(
+            art_elf_image_,
+            "_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_9ArtMethodEEEbPT_NS0_7ApiListENS0_12AccessMethodE"
+    );
+    if (symbol) {
+        WInlineHookFunction(symbol, reinterpret_cast<void *>(OnInvokeHiddenAPI), nullptr);
+    }
     return symbol != nullptr;
 }
 
@@ -489,6 +516,20 @@ void ArtRuntime::FixBugN() {
         WInlineHookFunction(symbol, reinterpret_cast<void *>(new_ToDexPc), reinterpret_cast<void **>(&old_ToDexPc));
     }
     is_hooked = true;
+}
+
+jmethodID OnInvokeEncodeMethodId(void *thiz, void *method) {
+    return reinterpret_cast<jmethodID>(method);
+}
+
+void ArtRuntime::hookEncodeArtMethod() {
+    void *symbol = nullptr;
+    symbol = WDynamicLibSymbol(art_elf_image_,
+                               "_ZN3art3jni12JniIdManager14EncodeMethodIdEPNS_9ArtMethodE");
+    if (symbol) {
+        WInlineHookFunction(symbol, reinterpret_cast<void *>(OnInvokeEncodeMethodId),
+                            nullptr);
+    }
 }
 
 }  // namespace art
