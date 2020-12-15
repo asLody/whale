@@ -71,6 +71,10 @@ externalNativeBuild {
   }
 }
 ```
+同时在 local.properties 指定ndk.dir
+```
+ndk.dir=your/ndk/path/android-ndk-r17c
+```
 
 #### IOS
 ```
